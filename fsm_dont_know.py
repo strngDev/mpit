@@ -11,7 +11,7 @@ import keyboards
 import values
 import work_with_excel
 from config import BOT_API
-from keyboards import spec_keyboard
+from keyboards import spec_keyboard, interrupt_keyboard
 from values import trainings, questions, prof_test_data
 import re
 
@@ -100,7 +100,7 @@ async def choosing_city_new_handler(msg: Message, state: FSMContext):
     await bot.edit_message_text(
         chat_id=msg.chat.id,
         message_id=ans_id,
-        text="Расскажите немного о себе (кратко).",
+        text="Пожалуйста отправьте url на ваше портфолио.",
         reply_markup=keyboards.interrupt_keyboard()
     )
     await bot.delete_message(
@@ -120,22 +120,21 @@ async def choosing_resume_new_handler(msg: Message, state: FSMContext):
         await bot.edit_message_text(
             chat_id=msg.chat.id,
             message_id=ans_id,
-            text="Пожалуйста, предоставьте корректный URL."
+            text="Пожалуйста, предоставьте корректный URL.",
+            reply_markup=interrupt_keyboard()
+        )
+        await bot.delete_message(
+            msg.chat.id,
+            msg.message_id
         )
         return
-
     await state.update_data(resume=msg.text)
-    await bot.edit_message_text(
-        chat_id=msg.chat.id,
-        message_id=ans_id,
-        text="Пожалуйста отправьте url на ваше портфолио.",
-        reply_markup=keyboards.interrupt_keyboard()
-    )
     await bot.delete_message(
         msg.chat.id,
         msg.message_id
     )
-    await state.set_state(DontKnowInterestStates.exp)
+    await bot.edit_message_text(chat_id=msg.chat.id, message_id=ans_id, text="Отлично пожалуйста отправьте ссылку снова для подтверждения")
+    await state.set_state(DontKnowInterestStates.prof_t)
 
 @router.message(DontKnowInterestStates.prof_t)
 async def choosing_professional_type_new_handler(msg: Message, state: FSMContext):
@@ -209,15 +208,10 @@ async def end_handler(callback: Message, state: FSMContext):
 @router.callback_query(F.data.startswith("spec_"))
 async def choice(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    await bot.delete_message(callback.message.chat.id, callback.message.message_id)
     spec = values.trainings[callback.data.replace("spec_", "")]
     await bot.send_message(callback.message.chat.id, "Поздравляем, заявка успешно отправлена!")
-    work_with_excel.create_excel_from_dict_list([{"Имя": data["name"],
-                                                  "Возраст": data["age"],
-                                                  "Город": data['city'],
-                                                  "Имя пользователя": callback.message.from_user.id,
-                                                  "Резюме": data["resume"],
-                                                  "Специальность": spec
-                                                  }], output_filename="talents.xlsx", sheet_name="MainSheet")
+    work_with_excel.write_to_csv([{"name": data["name"], "age": data["age"], "city": data["city"], "username": callback.from_user.username, "resume": data["resume"], "spec": spec  }])
 
 
 @router.callback_query(F.data=="interrupt")

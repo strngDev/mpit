@@ -82,7 +82,7 @@ async def city_pro_talent_handler(msg: Message, state: FSMContext):
     await bot.edit_message_text(
         chat_id=msg.chat.id,
         message_id=ans_id,
-        text="Отправьте краткое резюме о себе.",
+        text="Пожалуйста отправьте ссылку на ваше портфолио.",
         reply_markup=interrupt_keyboard()
     )
     await bot.delete_message(msg.chat.id, msg.message_id)
@@ -100,19 +100,18 @@ async def resume_pro_talent_handler(msg: Message, state: FSMContext):
             message_id=ans_id,
             text="Пожалуйста, предоставьте корректный URL."
         )
+        await bot.delete_message(
+            chat_id=msg.chat.id,
+            message_id=msg.message_id
+        )
         return
 
     await state.update_data(resume=msg.text)
-    await bot.edit_message_text(
-        chat_id=msg.chat.id,
-        message_id=ans_id,
-        text="Пожалуйста отправьте url на ваше портфолио.",
-        reply_markup=interrupt_keyboard()
-    )
     await bot.delete_message(
         msg.chat.id,
         msg.message_id
     )
+    await bot.edit_message_text(chat_id=msg.chat.id, message_id=ans_id, text="Отлично пожалуйста отправьте ссылку снова для подтверждения")
     await state.set_state(KnowInterestStates.exp)
 
 
@@ -138,26 +137,19 @@ async def exp_pro_talent_handler(msg: Message, state: FSMContext):
         f"Имя: {user_data['name']}\n"
         f"Возраст: {user_data['age']}\n"
         f"Город: {user_data['city']}\n"
-        f"Резюме: {user_data['resume']}\n"
-        f"Опыт: {user_data['exp']}", reply_markup=spec_keyboard()
+        f"Резюме: {user_data['resume']}\n", reply_markup=spec_keyboard()
     )
-    await msg.answer(
-        "Перед тем как мы продолжим, необходимо ваше согласие с политикой обработки и хранения персональных данных", reply_markup=keyboards.personal_data_agreement_keyboard()
-    )
-    await state.clear()
+
 
 @router.callback_query(F.data.startswith("spec_"))
 async def choice(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    await bot.delete_message(callback.message.chat.id, callback.message.message_id)
+
     spec = values.trainings[callback.data.replace("spec_", "")]
     await bot.send_message(callback.message.chat.id, "Поздравляем, заявка успешно отправлена!")
-    work_with_excel.create_excel_from_dict_list([{"Имя": data["name"],
-                                                  "Возраст": data["age"],
-                                                  "Город": data['city'],
-                                                  "Имя пользователя": callback.message.from_user.id,
-                                                  "Резюме": data["resume"],
-                                                  "Специальность": spec
-                                                  }], output_filename="talents.xlsx", sheet_name="MainSheet")
+    work_with_excel.write_to_csv([{"name": data["name"], "age": data["age"], "city": data["city"], "username": callback.from_user.username, "resume": data["resume"], "spec": spec  }])
+
 
 
 

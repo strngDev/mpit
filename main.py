@@ -47,6 +47,11 @@ async def faq_handler(msg: Message):
     await msg.answer(open("faq.txt", "r").read())
 
 
+@dp.message(F.text == "🗓️ мероприятия 🗓️")
+async def events_handler(msg: Message):
+    await msg.answer("На данный момент, нет ни одного активного мероприятия, возвращайтесь позже!")
+
+
 async def main():
     await dp.start_polling(bot)
 

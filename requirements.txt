@@ -1,2 +1,6 @@
 aiogram
 googletrans==3.1.0a0
+pandas
+xlsxwriter
+openpyxl
+faker

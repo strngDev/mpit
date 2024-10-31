@@ -12,7 +12,6 @@ import fsm_dont_know
 import fsm_know
 import keyboards
 import not_stated
-import sqlite3
 
 # bot init
 bot = Bot(token=config.BOT_API)
@@ -21,9 +20,7 @@ dp.include_router(fsm_know.router)
 dp.include_router(fsm_dont_know.router)
 dp.include_router(not_stated.router)
 
-# database init
-con = sqlite3.connect("db.db")
-cur = con.cursor()
+
 
 
 @dp.message(CommandStart())
@@ -36,6 +33,7 @@ async def personal_data_agreement(msg: Message):
     await msg.answer("Для продолжения необходимо принять соглашение на обработку персональных данных",
                      reply_markup=keyboards.personal_data_agreement_keyboard()
                      )
+
 
 @dp.callback_query(F.data == "personal_data_agreement")
 async def submit_application_handler(callback: CallbackQuery):
